@@ -1,2 +1,2 @@
 # LittleShifter
-A basic volume control effect plug-in with IGraphics GUI
+A Lite Pitch-Shifting Plug-in for Speech / Vocals (Still On Working)
