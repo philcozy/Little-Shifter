@@ -2,12 +2,14 @@
 
 #include "IPlug_include_in_plug_hdr.h"
 #include "RingBuffer.h"
+#include <samplerate.h>
 
 const int kNumPresets = 1;
 
 enum EParams
 {
-  kGain = 0,
+  kPitchShift = 0,
+  kMix,
   kNumParams
 };
 
@@ -23,15 +25,37 @@ public:
   void ProcessBlock(sample** inputs, sample** outputs, int nFrames) override;
 #endif
 
+
+
 private:
-  /* Data Members */
+  /* Ring Buffer */
   RingBuffer mRingBuffer;
-  double pitchRatio = 1.2;
-  int mGrainSize = 512;
-  int resampledGrainSize = mGrainSize * pitchRatio + 16;
+
+  /* About pitchratio if statement */
+  double lastPitchRatio = 1.0;
+
+  /* About Grain */
+  int mGrainSize = MGRAIN_SIZE;
+  int resampledGrainSize = 0;
+  int sampleCounter = 0;
+  std::vector<float> grainIn;
+  std::vector<float> grainOut;
+
+  /* About Hann_Window*/
+  std::vector<float> window;
+
+  /* About resampling using libsamplerate library memebers */
   SRC_STATE* mSRCState = nullptr;
   int mSRCError = 0;
-  int hopSize = 512 * 0.5;
+  SRC_DATA data;
 
-  /* Member Functions*/
+  /* About Accumulator and output */
+  std::vector<float> mAccumulator;
+  int writerPos = 0; 
+  int readerPos = 0;
+  int hopSize;
+
+  /* Process new grain function */
+  void processNewGrain();
+  void hann_window(std::vector<float>& window, int size);
 };

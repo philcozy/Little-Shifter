@@ -1,12 +1,14 @@
 #include "LittleShifter.h"
 #include "IPlug_include_in_plug_src.h"
 #include "IControls.h"
-#include <samplerate.h>
 
 LittleShifter::LittleShifter(const InstanceInfo& info)
-: iplug::Plugin(info, MakeConfig(kNumParams, kNumPresets)), mRingBuffer(CAPACITY)
+  : iplug::Plugin(info, MakeConfig(kNumParams, kNumPresets))
+  , mRingBuffer(CAPACITY)
+  , mAccumulator(CAPACITY, 0.0f)
 {
-  GetParam(kGain)->InitDouble("Gain", 0., 0., 100.0, 0.01, "%");
+  GetParam(kPitchShift)->InitDouble("Pitch Shift", 1.0, 0.5, 2.0, 0.01, "x");
+  GetParam(kMix)->InitDouble("Mix", 1.0, 0.0, 1.0, 0.01, "");
 
 #if IPLUG_EDITOR // http://bit.ly/2S64BDd
   mMakeGraphicsFunc = [&]() {
@@ -17,9 +19,13 @@ LittleShifter::LittleShifter(const InstanceInfo& info)
     pGraphics->AttachCornerResizer(EUIResizerMode::Scale, false);
     pGraphics->AttachPanelBackground(COLOR_GRAY);
     pGraphics->LoadFont("Roboto-Regular", ROBOTO_FN);
+
     const IRECT b = pGraphics->GetBounds();
-    pGraphics->AttachControl(new ITextControl(b.GetMidVPadded(50), "Hello iPlug 2!", IText(50)));
-    pGraphics->AttachControl(new IVKnobControl(b.GetCentredInside(100).GetVShifted(-100), kGain));
+    const IRECT knob1Bounds = b.GetGridCell(0, 2, 2).GetCentredInside(100);
+    const IRECT knob2Bounds = b.GetGridCell(1, 2, 2).GetCentredInside(100);
+
+    pGraphics->AttachControl(new IVKnobControl(knob1Bounds, kPitchShift));
+    pGraphics->AttachControl(new IVKnobControl(knob2Bounds, kMix));
   };
 #endif
 
@@ -28,53 +34,86 @@ LittleShifter::LittleShifter(const InstanceInfo& info)
   {
     DBGMSG("libsamplerate init failed: %s\n", src_strerror(mSRCError));
   }
+
+  data.input_frames = mGrainSize;
+  grainIn.resize(mGrainSize);
+  grainOut.resize(MAX_GRAIN_SIZE);
+  window.resize(MAX_GRAIN_SIZE);
+  hopSize = mGrainSize * 0.5;
 }
 
 #if IPLUG_DSP
 void LittleShifter::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
 {
-  const double gain = GetParam(kGain)->Value() / 100.;
+  /* Gets value from knobs */
+  const double pitchRatio  = GetParam(kPitchShift)->Value();
+  const double wet = GetParam(kMix)->Value();
+  const double dry = 1.0 - wet;
   const int nChans = NOutChansConnected();
 
+  /* Write into RingBuffer first*/
   mRingBuffer.writeBlock(inputs[0], nFrames);
-  /* PreProcessing...*/
-  std::vector<float> grainIn(mGrainSize);
-  std::vector<float> grainOut(resampledGrainSize);
-  std::vector<float> window(resampledGrainSize);
 
-  for (int n = 0; n < resampledGrainSize; ++n)
-    window[n] = 0.5f - 0.5f * cos(2.0f * M_PI * n / (resampledGrainSize - 1));
-  /* End PreProcessing*/
+  /* Changing value only if pitchratio changed */
+  if (pitchRatio != lastPitchRatio)
+  {
+    /* About grains */
+    resampledGrainSize = static_cast<int>(mGrainSize * pitchRatio + 16);
+    fill(grainOut.begin(), grainOut.begin() + resampledGrainSize, 0.0f);
 
+    /* About Hann_Window */
+    hann_window(window, resampledGrainSize);
+
+    /* About resampling using libsamplerate library memebers */
+    data.data_out = grainOut.data();
+    data.output_frames = resampledGrainSize;
+    data.src_ratio = 1.0 / pitchRatio;
+
+    lastPitchRatio = pitchRatio;
+  }
+
+  /* Process each sample */
+  for (int s = 0; s < nFrames; s++)
+  {
+    if (sampleCounter >= hopSize)
+    {
+      processNewGrain();
+      sampleCounter = 0;
+    }
+
+    /* Write into ouput from mAccumulator*/
+    outputs[0][s] = inputs[0][s] * dry + mAccumulator[readerPos] * wet;
+    outputs[1][s] = outputs[0][s];
+    mAccumulator[readerPos] = 0;
+    readerPos = (readerPos + 1) % mAccumulator.size();
+
+    sampleCounter++;
+  }
+}
+#endif
+
+/* get called only when pitchratio changed, so we don't have to recalculate everytime*/
+void LittleShifter::hann_window(std::vector<float>& window, int size)
+{
+  for (int n = 0; n < size; ++n)
+    window[n] = 0.5f - 0.5f * cos(2.0f * M_PI * n / (size - 1));
+}
+
+void LittleShifter::processNewGrain()
+{
+  /* Read from RingBuffer */
   int readIndex = mRingBuffer.getReadIndex(mGrainSize);
   mRingBuffer.readBlock(&grainIn[0], mGrainSize, readIndex);
 
-  SRC_DATA data;
+  /* Resampling */
   data.data_in = grainIn.data();
-  data.input_frames = mGrainSize;
-  data.data_out = grainOut.data();
-  data.output_frames = resampledGrainSize;
-  data.src_ratio = 1.0 / pitchRatio;
   src_process(mSRCState, &data);
 
-  std::vector<float> mAccumulator(CAPACITY); //if we initialize only one time, remember to (CAPACITY, 0.0f)
-  int writerPos = 0;
-  int readerPos = 0;
-
+  /* Write and Overlaps in mAccumulator from grainOut  */
   for (int i = 0; i < resampledGrainSize; i++)
   {
-    int idx = writerPos + i % mAccumulator.size();
+    int idx = (writerPos + i) % mAccumulator.size();
     mAccumulator[idx] += grainOut[i] * window[i];
   }
   writerPos = (writerPos + hopSize) % mAccumulator.size();
-
-  
-  for (int s = 0; s < nFrames; s++)
-  {
-    outputs[0][s] = mAccumulator[readerPos];
-    mAccumulator[readerPos] = 0;
-    readerPos = (readerPos + 1) % mAccumulator.size();
-  }
-
 }
-#endif
