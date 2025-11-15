@@ -59,3 +59,6 @@
 #define ROBOTO_FN "Roboto-Regular.ttf"
 
 #define M_PI 3.14159265358979323846
+#define M_FRAME_LENGTH 8192
+#define OSAMP 4
+#define FRAMESIZE 2048
