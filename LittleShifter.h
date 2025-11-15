@@ -21,4 +21,13 @@ public:
 #if IPLUG_DSP // http://bit.ly/2S64BDd
   void ProcessBlock(sample** inputs, sample** outputs, int nFrames) override;
 #endif
+private:
+  double pitchRatio = 1.0;
+  double inQueue[M_FRAME_LENGTH];
+  int frameSize = FRAMESIZE;
+  int hopSize = FRAMESIZE / OSAMP;
+  double window[FRAMESIZE];
+  int inFIFOLatency = FRAMESIZE - hopSize;
+  int writeIDX = inFIFOLatency;
+  int i, j;
 };
