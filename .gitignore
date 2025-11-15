@@ -1,23 +1,71 @@
-*.vs
-*.exe
-*.sdf
-*.opensdf
-*.zip
-*.suo
-*.ncb
-*.vcproj.*
-*.pkg
-*.dmg
-*.depend
-*.layout
-*.mode1v3
-*.db
-*.LSOverride
-*.xcuserdata
-*.xcschememanagement.plist
-build-*
-ipch/*
-gui/*
+# ==========================================
+# LittleShifter plugin (iPlug2 submodule)
+# ==========================================
 
-Icon?
-.DS_Stor*
+# ----------------------
+# 1) Build output
+# ----------------------
+build/
+Builds/
+cmake-build-*/
+bin/
+obj/
+out/
+
+# Compiled objects
+*.o
+*.obj
+*.pch
+*.pdb
+*.idb
+*.ilk
+
+# ----------------------
+# 2) Plugin binaries
+# ----------------------
+*.vst3
+*.component
+*.dll
+*.dylib
+*.so
+*.a
+*.lib
+*.exp
+
+# ----------------------
+# 3) IDE files
+# ----------------------
+
+# Visual Studio
+.vs/
+*.VC.db
+*.VC.VC.opendb
+*.suo
+*.user
+*.userprefs
+*.cache
+*.opensdf
+*.sdf
+*.ipch
+
+# Xcode
+*.xcworkspace/
+*.xcuserdata/
+DerivedData/
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+
+# ----------------------
+# 4) OS cruft
+# ----------------------
+.DS_Store
+Thumbs.db
+
+# ----------------------
+# 5) Backup / temp files
+# ----------------------
+*.tmp
+*.log
+*.bak
+*~
