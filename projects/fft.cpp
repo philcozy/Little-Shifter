@@ -1,7 +1,8 @@
 #include "config.h"
+#include "LittleShifter.h"
 #include <math.h>
 
-void smbFft(float* fftBuffer, long fftFrameSize, long sign)
+void LittleShifter::smbFft(double* fftBuffer, long fftFrameSize, long sign)
 /*
         FFT routine, (C)1996 S.M.Bernsee. Sign = -1 is FFT, 1 is iFFT (inverse)
         Fills fftBuffer[0...2*fftFrameSize-1] with the Fourier transform of the
@@ -14,8 +15,8 @@ void smbFft(float* fftBuffer, long fftFrameSize, long sign)
         of the frequencies of interest is in fftBuffer[0...fftFrameSize].
 */
 {
-  float wr, wi, arg, *p1, *p2, temp;
-  float tr, ti, ur, ui, *p1r, *p1i, *p2r, *p2i;
+  double wr, wi, arg, *p1, *p2, temp;
+  double tr, ti, ur, ui, *p1r, *p1i, *p2r, *p2i;
   long i, bitm, j, le, le2, k;
 
   for (i = 2; i < 2 * fftFrameSize - 2; i += 2)

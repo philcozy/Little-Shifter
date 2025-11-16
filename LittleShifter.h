@@ -17,7 +17,8 @@ class LittleShifter final : public Plugin
 {
 public:
   LittleShifter(const InstanceInfo& info);
-  void hannwindow();
+  void hannwindow(double* window);
+  void smbFft(double* fftBuffer, long fftFrameSize, long sign);
 
 #if IPLUG_DSP // http://bit.ly/2S64BDd
   void ProcessBlock(sample** inputs, sample** outputs, int nFrames) override;
@@ -31,9 +32,10 @@ private:
   int inFIFOLatency = FRAMESIZE - hopSize;
   int writeIDX = inFIFOLatency;
   int i, j;
+  double fftInterleaved[2 * FRAMESIZE];
 };
 
-void LittleShifter::hannwindow()
+void LittleShifter::hannwindow(double* window)
 {
   for (int k = 0; k < frameSize; k++)
     window[k] = -.5 * cos(2. * M_PI * (double)k / (double)frameSize) + .5;

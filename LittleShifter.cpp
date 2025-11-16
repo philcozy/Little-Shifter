@@ -6,6 +6,7 @@ LittleShifter::LittleShifter(const InstanceInfo& info)
 : iplug::Plugin(info, MakeConfig(kNumParams, kNumPresets))
 {
   GetParam(kGain)->InitDouble("Gain", 0., 0., 100.0, 0.01, "%");
+  hannwindow(window);
 
 #if IPLUG_EDITOR // http://bit.ly/2S64BDd
   mMakeGraphicsFunc = [&]() {
@@ -29,22 +30,27 @@ void LittleShifter::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
   const double gain = GetParam(kGain)->Value() / 100.;
   const int nChans = NOutChansConnected();
   
-  for (i = 0; i < nFrames; i++) {
+  for (i = 0; i < nFrames; i++)
+  {
     inQueue[writeIDX] = inputs[0][i];
     writeIDX++;
 
-    if (writeIDX >= frameSize) {
+    if (writeIDX >= frameSize)
+    {
       writeIDX = inFIFOLatency;
+
+      for (j = 0; j < frameSize; j++)
+      {
+        fftInterleaved[2 * j] = inQueue[j] * window[j]; // real part
+        fftInterleaved[2 * j + 1] = 0.0;                // imag part
+      }
+
+      smbFft(fftInterleaved, frameSize, -1);
+
+
 
       for (j = 0; j < inFIFOLatency; j++) inQueue[j] = inQueue[j + hopSize];
     }
-
-
-
-
-
-
-
   }
 }
 #endif
