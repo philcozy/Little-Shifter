@@ -135,6 +135,7 @@
       <Filter>IGraphics</Filter>
     </ClCompile>
     <ClCompile Include="fft.cpp" />
+    <ClCompile Include="hannwindow.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="../config.h" />

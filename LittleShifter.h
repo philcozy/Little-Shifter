@@ -2,6 +2,9 @@
 
 #include "IPlug_include_in_plug_hdr.h"
 
+#define M_PI 3.14159265358979323846
+#define MAX_FRAME_LENGTH 8192
+
 const int kNumPresets = 1;
 
 enum EParams
@@ -24,19 +27,24 @@ public:
   void ProcessBlock(sample** inputs, sample** outputs, int nFrames) override;
 #endif
 private:
-  double pitchRatio = 1.0;
-  double inQueue[M_FRAME_LENGTH];
-  int frameSize = FRAMESIZE;
-  int hopSize = FRAMESIZE / OSAMP;
-  double window[FRAMESIZE];
-  int inFIFOLatency = FRAMESIZE - hopSize;
-  int writeIDX = inFIFOLatency;
-  int i, j;
-  double fftInterleaved[2 * FRAMESIZE];
+  double pitchShift = 1.5;
+  long osamp;
+  double sampleRate;
+  long fftFrameSize = 2048;
+  double window[MAX_FRAME_LENGTH];
+  double gInFIFO[MAX_FRAME_LENGTH];
+  double gOutFIFO[MAX_FRAME_LENGTH];
+  double gFFTworksp[2 * MAX_FRAME_LENGTH];
+  double gLastPhase[MAX_FRAME_LENGTH / 2 + 1];
+  double gSumPhase[MAX_FRAME_LENGTH / 2 + 1];
+  double gOutputAccum[2 * MAX_FRAME_LENGTH];
+  double gAnaFreq[MAX_FRAME_LENGTH];
+  double gAnaMagn[MAX_FRAME_LENGTH];
+  double gSynFreq[MAX_FRAME_LENGTH];
+  double gSynMagn[MAX_FRAME_LENGTH];
+  long gRover;
+  double magn, phase, tmp, real, imag;
+  double freqPerBin, expct;
+  long i, k, qpd, index, inFifoLatency, stepSize, fftFrameSize2;
 };
 
-void LittleShifter::hannwindow(double* window)
-{
-  for (int k = 0; k < frameSize; k++)
-    window[k] = -.5 * cos(2. * M_PI * (double)k / (double)frameSize) + .5;
-}
