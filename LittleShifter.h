@@ -9,7 +9,7 @@ const int kNumPresets = 1;
 
 enum EParams
 {
-  kGain = 0,
+  kPitchRatio = 0,
   kNumParams
 };
 
@@ -27,7 +27,6 @@ public:
   void ProcessBlock(sample** inputs, sample** outputs, int nFrames) override;
 #endif
 private:
-  double pitchShift = 1.5;
   long osamp;
   double sampleRate;
   long fftFrameSize = 2048;

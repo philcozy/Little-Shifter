@@ -5,7 +5,7 @@
 LittleShifter::LittleShifter(const InstanceInfo& info)
 : iplug::Plugin(info, MakeConfig(kNumParams, kNumPresets))
 {
-  GetParam(kGain)->InitDouble("Gain", 0., 0., 100.0, 0.01, "%");
+  GetParam(kPitchRatio)->InitDouble("PitchRatio", 1.0, 0.5, 1.5, 0.1);
 
   fftFrameSize = 2048;
   osamp = 4;
@@ -40,7 +40,7 @@ LittleShifter::LittleShifter(const InstanceInfo& info)
     pGraphics->LoadFont("Roboto-Regular", ROBOTO_FN);
     const IRECT b = pGraphics->GetBounds();
     pGraphics->AttachControl(new ITextControl(b.GetMidVPadded(50), "Hello iPlug 2!", IText(50)));
-    pGraphics->AttachControl(new IVKnobControl(b.GetCentredInside(100).GetVShifted(-100), kGain));
+    pGraphics->AttachControl(new IVKnobControl(b.GetCentredInside(100).GetVShifted(-100), kPitchRatio));
   };
 #endif
 }
@@ -48,7 +48,7 @@ LittleShifter::LittleShifter(const InstanceInfo& info)
 #if IPLUG_DSP
 void LittleShifter::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
 {
-  const double gain = GetParam(kGain)->Value() / 100.;
+  const double pitchShift = GetParam(kPitchRatio)->Value() / 100.;
   const int nChans = NOutChansConnected();
   
   for (i = 0; i < nFrames; i++)
