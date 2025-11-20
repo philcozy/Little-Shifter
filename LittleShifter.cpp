@@ -48,7 +48,7 @@ LittleShifter::LittleShifter(const InstanceInfo& info)
 #if IPLUG_DSP
 void LittleShifter::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
 {
-  const double pitchShift = GetParam(kPitchRatio)->Value() / 100.;
+  const double pitchShift = GetParam(kPitchRatio)->Value();
   const int nChans = NOutChansConnected();
   
   for (i = 0; i < nFrames; i++)
