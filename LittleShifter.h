@@ -45,5 +45,6 @@ private:
   double magn, phase, tmp, real, imag;
   double freqPerBin, expct;
   long i, k, qpd, index, inFifoLatency, stepSize, fftFrameSize2;
+  double indexFloat, frac;
 };
 

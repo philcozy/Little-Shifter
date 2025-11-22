@@ -120,11 +120,18 @@ void LittleShifter::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
       memset(gSynFreq, 0, fftFrameSize * sizeof(double));
       for (k = 0; k <= fftFrameSize2; k++)
       {
-        index = k * pitchShift;
+        indexFloat = k * pitchShift;
+        index = (long)indexFloat;
+        frac = indexFloat - index;
         if (index <= fftFrameSize2)
         {
-          gSynMagn[index] += gAnaMagn[k];
+          gSynMagn[index] += gAnaMagn[k] * (1. - frac);
           gSynFreq[index] = gAnaFreq[k] * pitchShift;
+          if (index + 1 <= fftFrameSize2)
+          {
+            gSynMagn[index + 1] += gAnaMagn[k] * frac;
+            gSynFreq[index + 1] = gAnaFreq[k] * pitchShift; // both bins should represent the same frequency
+          }
         }
       }
 
