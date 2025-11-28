@@ -1,9 +1,10 @@
 #include "LittleShifter.h"
-#include "IPlug_include_in_plug_src.h"
 #include "IControls.h"
+#include "IPlug_include_in_plug_src.h"
+
 
 LittleShifter::LittleShifter(const InstanceInfo& info)
-: iplug::Plugin(info, MakeConfig(kNumParams, kNumPresets))
+  : iplug::Plugin(info, MakeConfig(kNumParams, kNumPresets))
 {
   GetParam(kPitchRatio)->InitDouble("PitchRatio", 1.0, 0.5, 1.5, 0.1);
 
@@ -16,7 +17,7 @@ LittleShifter::LittleShifter(const InstanceInfo& info)
   freqPerBin = sampleRate / (double)fftFrameSize;
   expct = 2. * M_PI * (double)stepSize / (double)fftFrameSize;
   inFifoLatency = fftFrameSize - stepSize;
-  gRover = inFifoLatency;
+  gRover = 0;
   hannwindow(window);
 
   memset(gInFIFO, 0, MAX_FRAME_LENGTH * sizeof(double));
@@ -24,22 +25,23 @@ LittleShifter::LittleShifter(const InstanceInfo& info)
   memset(gFFTworksp, 0, 2 * MAX_FRAME_LENGTH * sizeof(double));
   memset(gLastPhase, 0, (MAX_FRAME_LENGTH / 2 + 1) * sizeof(double));
   memset(gSumPhase, 0, (MAX_FRAME_LENGTH / 2 + 1) * sizeof(double));
-  memset(gOutputAccum, 0, 2 * MAX_FRAME_LENGTH * sizeof(double));
   memset(gAnaFreq, 0, MAX_FRAME_LENGTH * sizeof(double));
   memset(gAnaMagn, 0, MAX_FRAME_LENGTH * sizeof(double));
 
+  /* initialize ring buffer */
+  ringbuffer_clear(&gInRingBuffer, MAX_FRAME_LENGTH);
+  ringbuffer_clear(&gOutputAccum, MAX_FRAME_LENGTH);
+  gOutputAccum.m_back = 0; //block processing expects start at 0
+
 
 #if IPLUG_EDITOR // http://bit.ly/2S64BDd
-  mMakeGraphicsFunc = [&]() {
-    return MakeGraphics(*this, PLUG_WIDTH, PLUG_HEIGHT, PLUG_FPS, GetScaleForScreen(PLUG_WIDTH, PLUG_HEIGHT));
-  };
-  
+  mMakeGraphicsFunc = [&]() { return MakeGraphics(*this, PLUG_WIDTH, PLUG_HEIGHT, PLUG_FPS, GetScaleForScreen(PLUG_WIDTH, PLUG_HEIGHT)); };
+
   mLayoutFunc = [&](IGraphics* pGraphics) {
     pGraphics->AttachCornerResizer(EUIResizerMode::Scale, false);
     pGraphics->AttachPanelBackground(COLOR_GRAY);
     pGraphics->LoadFont("Roboto-Regular", ROBOTO_FN);
     const IRECT b = pGraphics->GetBounds();
-    //pGraphics->AttachControl(new ITextControl(b.GetMidVPadded(50), "Hello iPlug 2!", IText(20)));
     pGraphics->AttachControl(new IVKnobControl(b.GetMidVPadded(50), kPitchRatio));
   };
 #endif
@@ -50,12 +52,22 @@ void LittleShifter::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
 {
   const double pitchShift = GetParam(kPitchRatio)->Value();
   const int nChans = NOutChansConnected();
-  
+
   for (i = 0; i < nFrames; i++)
   {
     /* As long as we have not yet collected enough data just read in */
-    gInFIFO[gRover] = inputs[0][i];
-    outputs[0][i] = gOutFIFO[gRover - inFifoLatency];
+    ringbuffer_push_sample(&gInRingBuffer, inputs[0][i]);
+
+    /* Before the first frame, index might be negative */
+    if (gRover < inFifoLatency) 
+    {
+      outputs[0][i] = 0.0;
+    }
+    else
+    {
+      outputs[0][i] = gOutFIFO[gRover - inFifoLatency];
+    }
+
     outputs[1][i] = outputs[0][i];
     gRover++;
 
@@ -67,10 +79,11 @@ void LittleShifter::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
       /* do windowing and re,im interleave */
       for (k = 0; k < fftFrameSize; k++)
       {
-        gFFTworksp[2 * k] = gInFIFO[k] * window[k]; // keywords in article: "Interleave", real part
-        gFFTworksp[2 * k + 1] = 0.;   // imagine part
+        read_idx = (gInRingBuffer.m_front + k) % gInRingBuffer.S;
+        gFFTworksp[2 * k] = gInRingBuffer.m_buffer[read_idx] * window[k]; // keywords in article: "Interleave", real part
+        gFFTworksp[2 * k + 1] = 0.;                                       // imagine part
       }
-
+      gInRingBuffer.m_front = (gInRingBuffer.m_front + stepSize) % gInRingBuffer.S;
 
       /* ***************** ANALYSIS ******************* */
       /* do transform */
@@ -175,17 +188,17 @@ void LittleShifter::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
       /* do windowing and add to output accumulator */
       for (k = 0; k < fftFrameSize; k++)
       {
-        gOutputAccum[k] += 2. * window[k] * gFFTworksp[2 * k] / (fftFrameSize2 * osamp);
+        gOutputAccum.m_buffer[(gOutputAccum.m_back + k) % (gOutputAccum.S)] += 2. * window[k] * gFFTworksp[2 * k] / (fftFrameSize2 * osamp);
       }
+      gOutputAccum.m_back = (gOutputAccum.m_back + stepSize) % gOutputAccum.S;
+
+      /* We can delete this after ring buffer implementation*/
       for (k = 0; k < stepSize; k++)
-        gOutFIFO[k] = gOutputAccum[k];
-
-      /* shift accumulator */
-      memmove(gOutputAccum, gOutputAccum + stepSize, fftFrameSize * sizeof(double));
-
-      /* move input FIFO */
-      for (k = 0; k < inFifoLatency; k++)
-        gInFIFO[k] = gInFIFO[k + stepSize];
+      {
+        gOutFIFO[k] = gOutputAccum.m_buffer[(gOutputAccum.m_front + k) % (gOutputAccum.S)];
+        gOutputAccum.m_buffer[(gOutputAccum.m_front + k) % (gOutputAccum.S)] = 0.0; // clear after reading
+      }
+      gOutputAccum.m_front = (gOutputAccum.m_front + stepSize) % gOutputAccum.S;
     }
   }
 }

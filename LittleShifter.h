@@ -20,7 +20,6 @@ typedef struct RINGBUFFER
 {
   int S; // size of buffer
   double m_buffer[MAX_FRAME_LENGTH];
-  int m_size;
   int m_front; // read pointer
   int m_back; // write pointer
 }ringbuffer_t;
@@ -50,7 +49,6 @@ private:
   double gFFTworksp[2 * MAX_FRAME_LENGTH];
   double gLastPhase[MAX_FRAME_LENGTH / 2 + 1];
   double gSumPhase[MAX_FRAME_LENGTH / 2 + 1];
-  double gOutputAccum[2 * MAX_FRAME_LENGTH];
   double gAnaFreq[MAX_FRAME_LENGTH];
   double gAnaMagn[MAX_FRAME_LENGTH];
   double gSynFreq[MAX_FRAME_LENGTH];
@@ -58,8 +56,8 @@ private:
   long gRover;
   double magn, phase, tmp, real, imag;
   double freqPerBin, expct;
-  long i, k, qpd, index, inFifoLatency, stepSize, fftFrameSize2;
+  long i, k, qpd, index, inFifoLatency, stepSize, fftFrameSize2, read_idx;
   double indexFloat, frac;
-  ringbuffer_t my_buffer;
+  ringbuffer_t gInRingBuffer, gOutputAccum;
 };
 

@@ -43,3 +43,4 @@ C:\Users\philc\Dev\iPlug2\IPlug\VST3\IPlugVST3_ProcessorBase.cpp;C:\Users\philc\
 C:\Users\philc\Dev\iPlug2\Examples\LittleShifter\LittleShifter.cpp;C:\Users\philc\Dev\iPlug2\Examples\LittleShifter\build-win\vst3\x64\Debug\int\LittleShifter.obj
 C:\Users\philc\Dev\iPlug2\Examples\LittleShifter\projects\fft.cpp;C:\Users\philc\Dev\iPlug2\Examples\LittleShifter\build-win\vst3\x64\Debug\int\fft.obj
 C:\Users\philc\Dev\iPlug2\Examples\LittleShifter\projects\hannwindow.cpp;C:\Users\philc\Dev\iPlug2\Examples\LittleShifter\build-win\vst3\x64\Debug\int\hannwindow.obj
+C:\Users\philc\Dev\iPlug2\Examples\LittleShifter\projects\RingBuffer.cpp;C:\Users\philc\Dev\iPlug2\Examples\LittleShifter\build-win\vst3\x64\Debug\int\RingBuffer.obj
