@@ -67,8 +67,8 @@ void LittleShifter::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
       /* do windowing and re,im interleave */
       for (k = 0; k < fftFrameSize; k++)
       {
-        gFFTworksp[2 * k] = gInFIFO[k] * window[k];                               // keywords in article: "Interleave", real part
-        gFFTworksp[2 * k + 1] = 0.;                                            // imagine part
+        gFFTworksp[2 * k] = gInFIFO[k] * window[k]; // keywords in article: "Interleave", real part
+        gFFTworksp[2 * k + 1] = 0.;   // imagine part
       }
 
 

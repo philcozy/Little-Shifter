@@ -16,12 +16,26 @@ enum EParams
 using namespace iplug;
 using namespace igraphics;
 
+typedef struct RINGBUFFER
+{
+  int S; // size of buffer
+  double m_buffer[MAX_FRAME_LENGTH];
+  int m_size;
+  int m_front; // read pointer
+  int m_back; // write pointer
+}ringbuffer_t;
+
 class LittleShifter final : public Plugin
 {
 public:
   LittleShifter(const InstanceInfo& info);
   void hannwindow(double* window);
   void smbFft(double* fftBuffer, long fftFrameSize, long sign);
+
+  void ringbuffer_clear(ringbuffer_t* buffer, uint32_t size); // initialize ring buffer
+  void ringbuffer_push(ringbuffer_t* buffer); // shift write pointer
+  void ringbuffer_push_sample(ringbuffer_t* buffer, const double x); // write sample to buffer
+  double ringbuffer_front(ringbuffer_t* buffer); // read oldest buffer
 
 #if IPLUG_DSP // http://bit.ly/2S64BDd
   void ProcessBlock(sample** inputs, sample** outputs, int nFrames) override;
@@ -46,5 +60,6 @@ private:
   double freqPerBin, expct;
   long i, k, qpd, index, inFifoLatency, stepSize, fftFrameSize2;
   double indexFloat, frac;
+  ringbuffer_t my_buffer;
 };
 
