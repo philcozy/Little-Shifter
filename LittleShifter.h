@@ -28,6 +28,8 @@ class LittleShifter final : public Plugin
 {
 public:
   LittleShifter(const InstanceInfo& info);
+  void OnReset() override;
+  
   void hannwindow(double* window);
   void smbFft(double* fftBuffer, long fftFrameSize, long sign);
 

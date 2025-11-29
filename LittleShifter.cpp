@@ -10,7 +10,7 @@ LittleShifter::LittleShifter(const InstanceInfo& info)
 
   fftFrameSize = 2048;
   osamp = 4;
-  sampleRate = 44100.0;
+  sampleRate = GetSampleRate();
 
   fftFrameSize2 = fftFrameSize / 2;
   stepSize = fftFrameSize / osamp;
@@ -45,6 +45,13 @@ LittleShifter::LittleShifter(const InstanceInfo& info)
     pGraphics->AttachControl(new IVKnobControl(b.GetMidVPadded(50), kPitchRatio));
   };
 #endif
+}
+
+void LittleShifter::OnReset()
+{
+  sampleRate = GetSampleRate();
+  freqPerBin = sampleRate / (double)fftFrameSize;
+  SetLatency(inFifoLatency);
 }
 
 #if IPLUG_DSP
