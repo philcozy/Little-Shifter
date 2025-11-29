@@ -29,8 +29,7 @@ class LittleShifter final : public Plugin
 public:
   LittleShifter(const InstanceInfo& info);
   void OnReset() override;
-  
-  void hannwindow(double* window);
+  void BlackmanWindow(double* window);
   void smbFft(double* fftBuffer, long fftFrameSize, long sign);
 
   void ringbuffer_clear(ringbuffer_t* buffer, uint32_t size); // initialize ring buffer

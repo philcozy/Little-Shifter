@@ -18,7 +18,7 @@ LittleShifter::LittleShifter(const InstanceInfo& info)
   expct = 2. * M_PI * (double)stepSize / (double)fftFrameSize;
   inFifoLatency = fftFrameSize - stepSize;
   gRover = 0;
-  hannwindow(window);
+  BlackmanWindow(window);
 
   memset(gInFIFO, 0, MAX_FRAME_LENGTH * sizeof(double));
   memset(gOutFIFO, 0, MAX_FRAME_LENGTH * sizeof(double));
