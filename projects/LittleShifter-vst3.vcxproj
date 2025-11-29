@@ -390,7 +390,7 @@
     <ClCompile Include="..\..\..\IPlug\VST3\IPlugVST3_ProcessorBase.cpp" />
     <ClCompile Include="..\LittleShifter.cpp" />
     <ClCompile Include="fft.cpp" />
-    <ClCompile Include="hannwindow.cpp" />
+    <ClCompile Include="BlackmanWindow.cpp" />
     <ClCompile Include="RingBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
