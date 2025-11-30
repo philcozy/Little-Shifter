@@ -388,8 +388,9 @@
     <ClCompile Include="..\..\..\IPlug\IPlugTimer.cpp" />
     <ClCompile Include="..\..\..\IPlug\VST3\IPlugVST3.cpp" />
     <ClCompile Include="..\..\..\IPlug\VST3\IPlugVST3_ProcessorBase.cpp" />
+    <ClCompile Include="..\..\..\WDL\fft.c" />
     <ClCompile Include="..\LittleShifter.cpp" />
-    <ClCompile Include="fft.cpp" />
+    <ClCompile Include="smbfft.cpp" />
     <ClCompile Include="BlackmanWindow.cpp" />
     <ClCompile Include="RingBuffer.cpp" />
   </ItemGroup>

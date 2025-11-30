@@ -134,9 +134,10 @@
     <ClCompile Include="..\..\..\IGraphics\IGraphicsEditorDelegate.cpp">
       <Filter>IGraphics</Filter>
     </ClCompile>
-    <ClCompile Include="fft.cpp" />
-    <ClCompile Include="hannwindow.cpp" />
+    <ClCompile Include="smbfft.cpp" />
+    <ClCompile Include="BlackmanWindow.cpp" />
     <ClCompile Include="RingBuffer.cpp" />
+    <ClCompile Include="..\..\..\WDL\fft.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="../config.h" />

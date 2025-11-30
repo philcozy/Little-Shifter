@@ -1,6 +1,7 @@
 #pragma once
 
 #include "IPlug_include_in_plug_hdr.h"
+#include "fft.h"
 
 #define M_PI 3.14159265358979323846
 #define MAX_FRAME_LENGTH 8192
@@ -57,8 +58,9 @@ private:
   long gRover;
   double magn, phase, tmp, real, imag;
   double freqPerBin, expct;
-  long i, k, qpd, index, inFifoLatency, stepSize, fftFrameSize2, read_idx;
+  long i, k, qpd, index, inFifoLatency, stepSize, fftFrameSize2, read_idx, permuted_idx;
   double indexFloat, frac;
   ringbuffer_t gInRingBuffer, gOutputAccum;
+  WDL_FFT_REAL fftBuffer[MAX_FRAME_LENGTH], wdl_scale;  
 };
 

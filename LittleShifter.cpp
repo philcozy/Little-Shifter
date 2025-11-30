@@ -33,6 +33,9 @@ LittleShifter::LittleShifter(const InstanceInfo& info)
   ringbuffer_clear(&gOutputAccum, MAX_FRAME_LENGTH);
   gOutputAccum.m_back = 0; //block processing expects start at 0
 
+  /* initializer wdl fft buffer */
+  WDL_fft_init();
+  wdl_scale = 0.5 / fftFrameSize;
 
 #if IPLUG_EDITOR // http://bit.ly/2S64BDd
   mMakeGraphicsFunc = [&]() { return MakeGraphics(*this, PLUG_WIDTH, PLUG_HEIGHT, PLUG_FPS, GetScaleForScreen(PLUG_WIDTH, PLUG_HEIGHT)); };
@@ -87,22 +90,22 @@ void LittleShifter::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
       for (k = 0; k < fftFrameSize; k++)
       {
         read_idx = (gInRingBuffer.m_front + k) % gInRingBuffer.S;
-        gFFTworksp[2 * k] = gInRingBuffer.m_buffer[read_idx] * window[k]; // keywords in article: "Interleave", real part
-        gFFTworksp[2 * k + 1] = 0.;                                       // imagine part
+        fftBuffer[k] = gInRingBuffer.m_buffer[read_idx] * window[k] * wdl_scale;
       }
       gInRingBuffer.m_front = (gInRingBuffer.m_front + stepSize) % gInRingBuffer.S;
 
       /* ***************** ANALYSIS ******************* */
       /* do transform */
-      smbFft(gFFTworksp, fftFrameSize, -1);
+      WDL_real_fft(fftBuffer, fftFrameSize, 0);
+      WDL_FFT_COMPLEX* cbuf = (WDL_FFT_COMPLEX*)fftBuffer;
 
       /* this is the analysis step */
       for (k = 0; k <= fftFrameSize2; k++)
       {
-
+        permuted_idx = WDL_fft_permute(fftFrameSize2, k);
         /* de-interlace FFT buffer */
-        real = gFFTworksp[2 * k];
-        imag = gFFTworksp[2 * k + 1];
+        real = cbuf[permuted_idx].re;
+        imag = cbuf[permuted_idx].im;
 
         /* compute magnitude and phase */
         magn = 2. * sqrt(real * real + imag * imag);
@@ -159,7 +162,7 @@ void LittleShifter::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
       /* this is the synthesis step */
       for (k = 0; k <= fftFrameSize2; k++)
       {
-
+        permuted_idx = WDL_fft_permute(fftFrameSize2, k);
         /* get magnitude and true frequency from synthesis arrays */
         magn = gSynMagn[k];
         tmp = gSynFreq[k];
@@ -181,25 +184,24 @@ void LittleShifter::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
         phase = gSumPhase[k];
 
         /* get real and imag part and re-interleave */
-        gFFTworksp[2 * k] = magn * cos(phase);
-        gFFTworksp[2 * k + 1] = magn * sin(phase);
+        cbuf[permuted_idx].re = magn * cos(phase);
+        cbuf[permuted_idx].im = magn * sin(phase);
       }
 
       /* zero negative frequencies */
-      for (k = fftFrameSize + 2; k < 2 * fftFrameSize; k++)
-        gFFTworksp[k] = 0.;
+      //for (k = fftFrameSize + 2; k < 2 * fftFrameSize; k++)
+        //gFFTworksp[k] = 0.;
 
       /* do inverse transform */
-      smbFft(gFFTworksp, fftFrameSize, 1);
+      WDL_real_fft(fftBuffer, fftFrameSize, 1);
 
       /* do windowing and add to output accumulator */
       for (k = 0; k < fftFrameSize; k++)
       {
-        gOutputAccum.m_buffer[(gOutputAccum.m_back + k) % (gOutputAccum.S)] += 2. * window[k] * gFFTworksp[2 * k] / (fftFrameSize2 * osamp);
+        gOutputAccum.m_buffer[(gOutputAccum.m_back + k) % (gOutputAccum.S)] += 2. * window[k] * fftBuffer[k] / (fftFrameSize2 * osamp) / wdl_scale;
       }
       gOutputAccum.m_back = (gOutputAccum.m_back + stepSize) % gOutputAccum.S;
 
-      /* We can delete this after ring buffer implementation*/
       for (k = 0; k < stepSize; k++)
       {
         gOutFIFO[k] = gOutputAccum.m_buffer[(gOutputAccum.m_front + k) % (gOutputAccum.S)];
